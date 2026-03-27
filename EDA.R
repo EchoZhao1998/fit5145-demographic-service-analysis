@@ -89,22 +89,6 @@ df |>
     cdr_na = sum(is.na(cdr))
   )
 
-# bouns: using plot
-library(ggplot2)
-
-df |> 
-  mutate(odr_missing = is.na(odr)) |> 
-  ggplot(aes(year, fill = odr_missing) +
-           geom_bar() +
-           labs(title = "Missing Pattern of ODR by Year")
-
-df |> 
-  mutate(cdr_missing = is.na(cdr))  |>
-  ggplot(aes(x = year, fill = cdr_missing)) +
-  geom_bar(position = "stack") +
-  labs(title = "Missing Pattern of CDR by Year")
-  
-
 # Check structure 
 summary(df)
 
