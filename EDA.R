@@ -72,27 +72,34 @@ df <- population |>
 
 colSums(is.na(df))
 
-# find na col
-df |> 
-  filter(is.na(odr)) |> 
-  count(year)
+library(naniar)
 
-df |> 
-  filter(is.na(cdr)) |> 
-  count(year)
+miss_var_summary(df)
 
+library(visdat)
+df |> vis_dat()
+df |> vis_miss()
 
-df |> 
-  group_by(year) |> 
-  summarise(
-    odr_na = sum(is.na(odr)),
-    cdr_na = sum(is.na(cdr))
-  )
+# visualize NA
+library(ggplot2)
 
-# Check structure 
-summary(df)
+df %>%
+  mutate(odr_missing = is.na(odr)) %>%
+  ggplot(aes(x = year, fill = odr_missing)) +
+  geom_bar(position = "stack") +
+  labs(title = "Missing Pattern of ODR by Year")
 
+df %>%
+  mutate(cdr_missing = is.na(cdr)) %>%
+  ggplot(aes(x = year, fill = cdr_missing)) +
+  geom_bar(position = "stack") +
+  labs(title = "Missing Pattern of CDR by Year")
 
+df %>%
+  mutate(odr_missing = is.na(odr)) %>%
+  ggplot(aes(x = year, fill = odr_missing)) +
+  geom_bar(position = "stack") +
+  labs(title = "Missing Pattern of ODR by Year")
 # dealing NA.
 # As 2020 entire year is missing, may be due to Covid 19, it is systematic issue. 
 # So I determine to drop all.
@@ -140,7 +147,5 @@ e_model_jun <- lm(
 )
 
 summary(e_model_jun)
-
-
 
 lm(beds_per_10k ~ odr + cdr + birth_rate + log_grp, data = df_clean)
