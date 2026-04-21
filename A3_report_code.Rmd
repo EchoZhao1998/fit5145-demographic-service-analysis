@@ -1,0 +1,108 @@
+---
+title: "Assignment3__report_code"
+author: "Wanting Echo Zhao"
+date: "`r Sys.Date()`"
+output: html_document
+theme: cosmo
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = T, eval = T, warning = F, message = F)
+```
+
+
+```{r}
+
+# load necessary libaries
+library(tidyverse)
+library(naniar)
+library(visdat)
+library(ggplot2)
+library(corrplot)
+library(GGally)
+library(car) # use for VIF
+```
+
+The original data download from [National Bureau of Statistics of China](https://data.stats.gov.cn/dg/website/page.html#/pc/national/en/fsYearData). I filtered vectors and download separately. Marker can directly download them from [Github](https://github.com/EchoZhao1998/fit5145-demographic-service-analysis/tree/main/data).
+
+
+```{r} 
+# The original data sets are same structure in wide format, and they have same issue - have no available data on 2025 when is the latest year.
+
+# Create a function to clean data
+clean_nbs <- function(file_path, value_name, save = TRUE) {
+  
+  df <- read_csv(
+    file_path, 
+    skip = 3, 
+    na = c("", "NA"), 
+    show_col_types = FALSE) |> 
+    select(-`2025`) |>
+    rename(province = Region) |>
+    
+    # 🔴 Remove footer / invalid rows
+    filter(
+      !is.na(province),
+      !grepl("Data Sources", province),
+      province != ""
+    ) |>
+    
+    mutate(across(-province, as.numeric)) |>
+    
+    pivot_longer(
+      cols = -province,
+      names_to = "year",
+      values_to = value_name
+    ) |>
+     # nolint
+    mutate(year = as.integer(year))
+  
+  if (save) {
+    write_csv(df, paste0("output/", value_name, "_clean.csv"))
+  }
+  
+  return(df)
+}
+
+# Apply to dataset
+
+# Demographic
+birth_rate <- clean_nbs("data/Birth_rate.csv", "birth_rate")
+odr <- clean_nbs("data/Old_Dependency_Ratio(Sample_Survey)(%).csv", "odr")
+cdr <- clean_nbs("data/Children_Dependency_Ratio (Sample_Survey)(%).csv","cdr")
+# Economic
+grp <- clean_nbs("data/Per_Capita_Gross_Regional_Product(yuan:person).csv", "grp_per_capita") 
+# Healthcare
+beds <- clean_nbs("data/Number_of_Beds_in_Health_Care_Institutions(10000_units).csv", "beds") 
+medical <- clean_nbs("data/Number_of_Medical_Technical_Personnel(10000 persons).csv", "medical_staff")
+# Population (CRITICAL)
+population <- clean_nbs("data/Resident_Population(year-end)(10000 persons).csv", "population")
+# Education
+student_teacher_pri <- clean_nbs("data/Student-Teacher_Ratio_of_Primary_School.csv", "student_teacher_pri_ratio")
+student_teacher_jun <- clean_nbs("data/Student-Teacher_Ratio_of_Junior_School.csv", "student_teacher_jun_ratio")
+
+# join tables
+
+library(purrr)
+
+# Put all your cleaned dataframes into a list
+list_of_dfs <- list(
+  population, birth_rate, odr, cdr, grp, 
+  beds, medical, student_teacher_pri, student_teacher_jun
+)
+
+# Join them all at once
+df <- list_of_dfs |> reduce(left_join, by = c("province", "year"))
+
+```
+
+Joined dataset is the basic table sheet for this analysis. Then, we can have a glace of current one. Cleaning NA values and do another necessary wrangling.
+
+```{r}
+
+## diagnose NA value
+colSums(is.na(df))
+miss_var_summary(df)
+
+```
+
