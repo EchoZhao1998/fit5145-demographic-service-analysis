@@ -46,11 +46,11 @@ odr <- clean_nbs("data/Old_Dependency_Ratio(Sample_Survey)(%).csv", "odr")
 cdr <- clean_nbs("data/Children_Dependency_Ratio (Sample_Survey)(%).csv","cdr")
 
 # Economic
-grp <- clean_nbs("data/Per_Capita_Gross_Regional_Product(yuan:person).csv", "grp_per_capita") # nolint
+grp <- clean_nbs("data/Per_Capita_Gross_Regional_Product(yuan:person).csv", "grp_per_capita")
 
 
 # Healthcare
-beds <- clean_nbs("data/Number_of_Beds_in_Health_Care_Institutions(10000_units).csv", "beds") # nolint
+beds <- clean_nbs("data/Number_of_Beds_in_Health_Care_Institutions(10000_units).csv", "beds") 
 medical <- clean_nbs("data/Number_of_Medical_Technical_Personnel(10000 persons).csv", "medical_staff")
 
 # Population (CRITICAL)
@@ -186,6 +186,36 @@ h_model <- lm(
 summary(h_model)
 vif(h_model)
 
+# Predict 'ideal' capacity based on historical ODR
+df_clean$predicted_beds <- predict(h_model, newdata = df_clean)
+
+# Calculate the 'Capacity Debt' (Mismatch)
+df_clean <- df_clean %>%
+  mutate(mismatch = beds_per_10k - predicted_beds)
+
+# Rank provinces for the 15th FYP Risk Map
+risk_map_2026 <- df_clean %>%
+  filter(year == 2024) %>% # Use most recent full year
+  arrange(mismatch)
+
+
+
+
+
+# Just add a grouping variable
+df_clean <- df_clean %>%
+  mutate(tier = case_when(
+    province %in% c("Beijing", "Shanghai", "Guangdong") ~ "Tier 1",
+    province %in% c("Sichuan", "Chongqing", "Hubei") ~ "Tier 2",
+    TRUE ~ "Tier 3"
+  ))
+
+# Run the model by group
+group_models <- df_clean %>%
+  group_by(tier) %>%
+  do(model = lm(beds_per_10k ~ odr_lag1 + odr_lag2 + odr_lag3 + log_grp, data = .))
+
+
 # Healthcare capacity appears to respond more strongly to ageing pressure than
 # to economic development, suggesting demographic structure is a primary driver
 # of public health infrastructure allocation
@@ -207,9 +237,6 @@ summary(e_model_jun)
 # Primary education resources respond more directly to demographic fluctuations, 
 # whereas junior secondary education appears more institutionally stable,
 # indicating delayed adjustment mechanisms in education planning.
-
-
-
 
 e_model_pri_lag <- lm(
   student_teacher_pri_ratio ~ birth_rate_lag1 + cdr + log_grp,
