@@ -5,8 +5,7 @@ library(naniar)
 library(visdat)
 library(ggplot2)
 library(corrplot)
-library(GGally)
-library(car) # use for VIF
+library(car) # use for VIF if necessary
 
 clean_nbs <- function(file_path, value_name, save = TRUE) {
   
@@ -48,7 +47,8 @@ grp <- clean_nbs("data/Per_Capita_Gross_Regional_Product(yuan:person).csv", "grp
 # Healthcare
 beds <- clean_nbs("data/Number_of_Beds_in_Health_Care_Institutions(10000_units).csv", "beds") 
 medical <- clean_nbs("data/Number_of_Medical_Technical_Personnel(10000 persons).csv", "medical_staff")
-hos <- clean_nbs("data/Outpatient_Services_of_Health_Institutions.csv", "hos") 
+# Number of Visits in Health Institutions (100 million person-times). Belong to Outpatient Service of Health Institution
+nov <- clean_nbs("data/Outpatient_Services_of_Health_Institutions.csv", "nov") # Number of Visits in Health Institutions (100 million person-times)
 # Population (CRITICAL)
 population <- clean_nbs("data/Resident_Population(year-end)(10000 persons).csv", "population")
 
@@ -68,14 +68,13 @@ df_raw <- list_of_dfs |> reduce(left_join, by = c("province", "year"))
 colSums(is.na(df))
 miss_var_summary(df)
 
-
 # dealing NA.
 # As 2020 entire year is missing, may be due to Covid 19, it is systematic issue. 
 # So I determine to drop all.
-df_cleaned <- df_raw |>
+df_clean <- df_raw |>
   filter(year != 2020)
 
-df_cleaned <- df_clean |> 
+df_clean <- df_clean |> 
   mutate(
     beds_per_10k = beds/population * 10000,
     medical_per_10k = medical_staff / population * 10000,
@@ -83,7 +82,7 @@ df_cleaned <- df_clean |>
   )
 
 # Creating the lags
-df_cleaned <- df_cleaned |> 
+df_clean <- df_clean |> 
   group_by(province) |> 
   mutate(
     odr_lag1 = lag(odr, 1),
@@ -92,10 +91,7 @@ df_cleaned <- df_cleaned |>
   ) |> 
   ungroup()
 
-# Running the DLM
-dlm_model <- lm(beds_per_10k ~ odr + odr_lag1 + odr_lag2 + odr_lag3 + log_grp, data = df_clean)
-summary(dlm_model)
-
-
-
+# Data overview
+summary(df_clean |> select(beds_per_10k, outpatient_visits, odr, log_grp))
+# (Placeholder: leave some description while drafting report)
 
