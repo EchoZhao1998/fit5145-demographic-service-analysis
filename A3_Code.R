@@ -47,7 +47,8 @@ beds       <- clean_nbs("data/Number_of_Beds_in_Health_Care_Institutions(10000_u
 medical    <- clean_nbs("data/Number_of_Medical_Technical_Personnel(10000 persons).csv", "medical_staff")
 grp        <- clean_nbs("data/Per_Capita_Gross_Regional_Product(yuan:person).csv", "grp_per_capita")
 
-# `nov` dataset download later and the data stracture slightly change in NBS of China.
+# `nov` dataset download later than my initial research - draftin my A1 proposal,
+# the data stracture slightly change in NBS of China, so I parse it separately
 # 1. Process the "nov" data separately
 nov <- read_csv("data/Outpatient_Services_of_Health_Institutions.csv", 
                 skip = 2, 
@@ -73,26 +74,32 @@ nov <- read_csv("data/Outpatient_Services_of_Health_Institutions.csv",
   # Only keep the specific 9-year range (2016-2024)
   filter(year >= 2016 & year <= 2024)
 
-# 2. Save it to the output folder (same as your function does)
+# 2. Save it to the output folder (same as function above does)
 if(!dir.exists("output")) dir.create("output", recursive = TRUE)
 write_csv(nov, "output/nov_clean.csv")
-# NOTE: THIS DATASET HAS NO `TIBET`
+# NOTE: THIS DATASET HAS NO available data of `TIBET` province!
 
 # --- 4. JOIN ---
 library(purrr)
 df_raw <- list(population, odr, beds, medical, nov, grp) |>
   reduce(left_join, by = c("province", "year"))
 
+# Instead of using `case_when` which will lengthen code.
+# Simplify join process with package `purrr`.
+
+
 # --- 5. DIAGNOSE MISSING ---
 colSums(is.na(df_raw))
 miss_var_summary(df_raw)
 df_raw |> vis_miss()
+
 
 # --- 6. HANDLE MISSING ---
 # Drop 2020: complete missingness in key indicators due to COVID-19
 # (treated as a structural break, not imputed)
 df_clean <- df_raw |>
   filter(year != 2020)
+
 
 # --- 7. FEATURE ENGINEERING ---
 df_clean <- df_clean |>
@@ -102,6 +109,7 @@ df_clean <- df_clean |>
     nov_per_10k     = nov / population * 10000,   # outpatient visits per 10k
     log_grp         = log(grp_per_capita)
   )
+
 
 # --- 8. CREATE LAG VARIABLES (grouped by province) ---
 df_clean <- df_clean |>
@@ -113,6 +121,10 @@ df_clean <- df_clean |>
     odr_lag3 = lag(odr, 3)
   ) |>
   ungroup()
+
+
+# Definition of each parameter
+#1. 2. 3. ... 
 
 # ============================================================
 # SECTION A: DATA OVERVIEW (Five Number Summary)
@@ -292,9 +304,6 @@ linearHypothesis(
 # ============================================================
 # SECTION E: MISMATCH INDEX
 # Identifies which provinces are most "behind"
-# ============================================================
-# ============================================================
-# SECTION E: MISMATCH INDEX
 # ============================================================
 
 # Generate predictions from validated demeaned model
