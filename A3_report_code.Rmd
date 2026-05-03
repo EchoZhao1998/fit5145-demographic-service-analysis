@@ -321,6 +321,12 @@ dwtest(model_A1)
 
 ```
 
+High VIF values are expected due to the persistence of demographic variables over time. HC3 robust standard errors are applied to ensure valid inference.
+
+
+
+> Keeping backgroud infomation below for learners who come across this knowledge first time.
+
 **VIF (Variance Inflation Factor) & Multicollinearity**
 
 - What it is: VIF measures how much a variable is "redundant." A VIF > 10 usually indicates that your independent variables are too highly correlated with each other.  
@@ -571,7 +577,7 @@ In summary, elevated VIF among lag terms is consistent with the slow-moving natu
 Ageing pressure drives demand immediately (Model A, lag 0–1, individually significant), but drives supply only as a distributed multi-year effect (Model B, jointly significant p=0.02), with no single year dominant — consistent with the multi-year budgeting cycles of infrastructure investment.
 
 
-----------
+---
 
 
 
@@ -620,28 +626,7 @@ df_modelB |>
 
 ```
 
-
-Standard derivation of `predict` function is 2.19, far smaller than 15.30, the mismatch computed by function which adjusted coefficient manually. 
-
-The larger variance in the manual method is actually good. It represents the "Injustice" or "Inequality" in the system that your project aims to solve. So keep manual predict regression function.
-
-Because 
-
-$$\text{Predicted Beds} = b_0 + (b_{\text{lag1}} \cdot \text{odr}_{\text{lag1}}) + (b_{\text{lag2}} \cdot \text{odr}_{\text{lag2}}) + (b_{\text{lag3}} \cdot \text{odr}_{\text{lag3}}) + (b_{\text{grp}} \cdot \text{log\_grp}) + \mathbf{b_{\text{province}}}$$
-The $\mathbf{b_{\text{province}}}$ is the "Province Fixed Effect."
-
-It lead to R fix errors wrongly. For example, : If Beijing has a high $b_{\text{province}}$ coefficient (which it does, $\approx 3.5$), predict() adds that $+3.5$ to the result just because the row says "Beijing." This masks the "mismatch" because the model "corrects" itself using the province's reputation rather than its demographic needs.
-
-
-
-> *For report(Delete later)*:
-
-> While the predict() function provides the best statistical fit by incorporating provincial fixed effects ($b_{\text{province}}$), these coefficients act as a proxy for 'unobserved historical development.' To isolate the net impact of aging, a manual benchmark was constructed. This benchmark excludes the provincial intercept, forcing the model to evaluate each region solely on its demographic pressure ($b_{\text{lag1-3}}$) and economic capacity ($b_{\text{grp}}$). This allows for a clear identification of provinces that are 'punching below their weight' in healthcare infrastructure.
-
-
-
---------------------
- 
+---
 
  
 ```{r}
@@ -677,26 +662,6 @@ province_mismatch |>
 ```
 
 
-
-Bar chart computes mismatch = beds_per_10k - demo_predicted, so:
-
-- **Positive** = actual beds > predicted = **over-supplied** (blue)
-- **Negative** = actual beds < predicted = **at risk** (red)
-
-Most under-supplied (negative, red): Beijing, Guangdong, Tianjin, Fujian, Shanghai, Zhejiang — all wealthy eastern coastal provinces.
-
-Most over-supplied (positive, red in current wrong chart): Heilongjiang, Gansu, Guizhou, Sichuan — inland/northeastern provinces with rapid ageing but slower demand growth and historically high bed-building investment.
-
-Trend mismatch tells you whether the gap is widening or closing:
-  
-- Shanxi: trend = -9.13 → gap widening rapidly, becoming more under-supplied
-- Beijing: trend = -2.75 → gap widening slower respectively. 
-- Guangxi: trend = +10.0 → infrastructure expanding faster than demographic pressure.
-- Henan: trend = +5.94 → improving, moving toward over-supply.
-
-
-
-
 ```{r}
 
 # Correct top 5 at-risk = most NEGATIVE mismatch (under-supplied)
@@ -723,22 +688,6 @@ df_modelB |>
 ```
 
 
-
-
-**Figure 1: The Under-Supplied "At-Risk" Provinces**
-
-The mismatch analysis covers 2019–2024 (excluding 2020),as the three-year distributed lag structure requires ODR observations from 2016 onwards to compute lag terms. 
-
-Shanghai shows a significant upward trend, indicating aggressive infrastructure investment that is successfully 'closing the gap' between demographic demand and physical capacity.Conversely, Beijing and Tianjin exhibit widening negative gaps. 
-
-This suggests that despite their wealth, their infrastructure expansion speed is being overwhelmed by the rapid pace of population aging. These provinces represent critical investment priorities where current growth is insufficient to meet projected needs.
-
-Moreover, I suppose it identifies a well-documented phenomenon in China known as 'Patient Migration' (就医流动). These Tier-1 hubs do not merely serve their local aging residents; they absorb complex cases and elderly patients from surrounding provinces.
-
-Consequently, pure provincial demographic data fails to fully capture the actual demand, creating a 'hidden' structural deficit. These regions represent critical investment priorities where supply must account for both local aging and national-level patient inflows.
-
-
-
 ```{r}
 
 bottom5_risk <- province_mismatch |> 
@@ -762,20 +711,123 @@ df_modelB |>
   theme_minimal()
 ```
 
+**Conceptual Framework**
+
+While Model B captures how healthcare infrastructure responds to demographic ageing over time, it does not directly reveal whether current resource allocation is adequate relative to demand.
+
+To address this, a mismatch index is constructed to quantify the gap between:
+
+- Observed infrastructure (actual beds per 10,000), and
+- Demographically predicted infrastructure, based on ageing pressure and economic capacity
+
+Formally:
+
+\text{Mismatch} = \text{Actual Beds}_{it} - \text{Predicted Beds}_{it}
+
+Where predicted values are derived from the estimated lag structure of ageing variables.
 
 
-**Figure 2: The Over-Supplied (Low-Risk) Provinces (Merged Version)**
 
-Figure 2 highlights provinces with a positive mismatch, where actual bed capacity exceeds demographic benchmarks.
+Why Not Use predict() Directly?
 
-Heilongjiang and Gansu maintain high positive values, suggesting they are currently safe from resource scarcity.
+The standard predict() function incorporates province fixed effects, which capture time-invariant characteristics such as historical investment levels and institutional advantages.
 
-Interestingly, this 'surplus' is likely the inverse of the patient migration seen in Figure 1.
+While this improves model fit, it introduces a critical limitation:
 
-This may suggest patients with critical needs migrate toward Tier-1 hubs
-These provinces are left with higher per-capita infrastructure but potentially lower-quality utilization. That is their citizen tend to seek higher quality healthcare resource from developed provinces.
+It allows structurally advantaged provinces to appear “well-matched” simply because they have historically higher capacity.
 
-Deserve to be noticed, while the risk of physical bed shortages is low, the declining trend in Jilin indicates that demographic aging is slowly eroding this historical surplus.
+To isolate true structural imbalance, the mismatch index is instead computed using a manual prediction function that excludes province fixed effects.
+
+This ensures that each province is evaluated based only on:
+
+- Demographic pressure (lagged ODR)
+- Economic capacity (log GRP)
+
+Thus, the mismatch index reflects relative performance, not historical legacy.
+
+---
+
+Interpretation of the Mismatch Index
+
+- Negative values (Mismatch < 0)
+    → Infrastructure is below demographically predicted levels
+    → Indicates under-supply and potential system strain
+- Positive values (Mismatch > 0)
+    → Infrastructure exceeds predicted demand
+    → Indicates relative over-supply or excess capacity
+
+---
+
+Provincial Patterns of Imbalance
+
+The results reveal a clear structural divide:
+
+Under-Supplied Regions (At Risk)
+
+Major coastal and economically developed provinces—including Beijing, Guangdong, Shanghai, Zhejiang, and Tianjin—consistently exhibit negative mismatch values.
+
+This suggests that:
+
+- Rapid population ageing is outpacing infrastructure expansion
+- High demand is not fully captured by local demographic indicators
+
+A likely explanation is inter-provincial patient inflow, where Tier-1 regions act as national healthcare hubs, absorbing demand from surrounding provinces. As a result, local infrastructure appears insufficient relative to true service demand.
+
+⸻
+
+Over-Supplied Regions (Low Risk)
+
+In contrast, several inland and northeastern provinces—such as Heilongjiang, Gansu, and Guizhou—display persistent positive mismatch values.
+
+This indicates:
+
+- Infrastructure provision exceeds what demographic structure alone would predict
+- Possible under-utilisation of resources
+
+This pattern may reflect:
+
+- Historical investment patterns
+- Out-migration of working-age population
+- Lower healthcare utilisation rates
+
+⸻
+
+Dynamic Trends
+
+Temporal analysis further reveals divergence in system adjustment:
+
+- Some provinces (e.g., Shanghai) show a narrowing mismatch, indicating successful infrastructure expansion aligned with demographic trends
+- Others (e.g., Beijing, Tianjin) exhibit a widening negative gap, suggesting persistent under-supply
+
+These dynamics reinforce the central finding:
+
+Healthcare systems do not adjust uniformly across regions, leading to persistent and evolving spatial inequality in service provision.
+
+---
+
+**Key Insight**
+
+Combining results from Model A (demand) and Model B (supply), the mismatch analysis highlights a fundamental structural issue:
+
+Demand responds rapidly to demographic ageing, while supply adjusts slowly and unevenly.
+
+This asymmetry produces sustained mismatches between healthcare needs and infrastructure provision, particularly in high-demand regions.
+
+---
+
+**Contribution of the Mismatch Index**
+
+The mismatch index extends beyond traditional regression analysis by:
+
+- Translating statistical relationships into actionable diagnostics
+- Identifying region-specific policy priorities
+- Revealing hidden inefficiencies not visible from model fit alone
+
+As such, it serves as a practical tool for:
+
+- Resource allocation planning
+- Infrastructure investment targeting
+- Monitoring system responsiveness to demographic change
 
 ```{r}
 
