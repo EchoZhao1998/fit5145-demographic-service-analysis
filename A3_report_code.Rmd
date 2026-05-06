@@ -653,7 +653,7 @@ province_mismatch |>
   labs(
     title = "Provincial Healthcare Mismatch Index",
     subtitle = "Red = Demand > Supply; Blue = Demand < Supply",
-    x = "Average Mismatch (Predicted − Actual Beds per 10k)",
+    x = "Average Mismatch (Actual Beds per 10k - Predicted)",
     y = NULL,
     fill = NULL
   ) +
@@ -703,7 +703,7 @@ df_modelB |>
   geom_hline(yintercept = 0, linetype = "dashed", color = "grey50") +
   labs(
     title = "Healthcare Infrastructure Mismatch - Top 5 Over-Supplied (Low-Risk) Provinces",
-    subtitle = "Positive values = actual beds BEYOND demographically predicted level (under-supplied)",
+    subtitle = "Positive values = actual beds BEYOND demographically predicted level (over-supplied)",
     x = "Year",
     y = "Mismatch (Actual − Predicted Beds per 10k)",
     color = "Province"
