@@ -4,10 +4,9 @@ author: "Wanting Echo Zhao"
 date: "`r Sys.Date()`"
 output:
   html_document:
-    highlight: haddock
     theme: flatly
-    toc: yes
-    toc_float: yes
+    toc: true
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
