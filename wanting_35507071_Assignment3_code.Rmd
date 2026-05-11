@@ -22,6 +22,11 @@ knitr::opts_chunk$set(echo = T, eval = T, warning = F, message = F)
 
 *Does healthcare infrastructure respond to ageing pressure with a systematic time lag?*
 
+
+> The original data download from [National Bureau of Statistics of China](https://data.stats.gov.cn/dg/website/page.html#/pc/national/en/fsYearData). 
+>
+> I filtered vectors and download separately. Marker can directly download them from [Github](https://github.com/EchoZhao1998/fit5145-demographic-service-analysis/tree/main/data).
+
 <br>
 
 ```{r}
@@ -108,10 +113,6 @@ df_raw <- list(population, odr, beds, medical, nov, grp) |>
 # Instead of using `case_when` which will lengthen code.
 # Simplify join process with package `purrr`.
 ```
-
-> The original data download from [National Bureau of Statistics of China](https://data.stats.gov.cn/dg/website/page.html#/pc/national/en/fsYearData). 
->
-> I filtered vectors and download separately. Marker can directly download them from [Github](https://github.com/EchoZhao1998/fit5145-demographic-service-analysis/tree/main/data).
 
 
 
